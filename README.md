@@ -241,19 +241,25 @@ tradingagents-desktop
 ### macOS
 
 ```bash
-pyinstaller --windowed --name TradingAgentsDesktop tradingagents/desktop/app.py
+./scripts/build_desktop_mac.sh
 ```
 
 ### Windows
 
 ```powershell
-pyinstaller --windowed --name TradingAgentsDesktop tradingagents/desktop/app.py
+.\scripts\build_desktop_windows.ps1
 ```
 
 打包前请先确认：
 - 已能在本地虚拟环境中正常运行
 - 所需 API Key 已配置
 - `PySide6` 已正确安装
+
+更多说明见：
+
+- [桌面端打包指南](docs/release/BUILD_DESKTOP.md)
+- [GitHub Release 文案模板](docs/release/GITHUB_RELEASE_COPY_ZH.md)
+- [截图规划清单](docs/release/SCREENSHOT_PLAN_ZH.md)
 
 ## 项目结构
 
