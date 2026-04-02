@@ -26,6 +26,7 @@ _PASSTHROUGH_KWARGS = (
 
 # Provider base URLs and API key env vars
 _PROVIDER_CONFIG = {
+    "deepseek": ("https://api.deepseek.com/v1", "DEEPSEEK_API_KEY"),
     "xai": ("https://api.x.ai/v1", "XAI_API_KEY"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "ollama": ("http://localhost:11434/v1", None),
@@ -33,12 +34,12 @@ _PROVIDER_CONFIG = {
 
 
 class OpenAIClient(BaseLLMClient):
-    """Client for OpenAI, Ollama, OpenRouter, and xAI providers.
+    """Client for OpenAI-compatible providers.
 
     For native OpenAI models, uses the Responses API (/v1/responses) which
     supports reasoning_effort with function tools across all model families
-    (GPT-4.1, GPT-5). Third-party compatible providers (xAI, OpenRouter,
-    Ollama) use standard Chat Completions.
+    (GPT-4.1, GPT-5). Third-party compatible providers (DeepSeek, xAI,
+    OpenRouter, Ollama) use standard Chat Completions.
     """
 
     def __init__(

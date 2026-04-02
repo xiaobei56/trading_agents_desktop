@@ -5,10 +5,12 @@ from rich.console import Console
 
 from cli.models import AnalystType
 from tradingagents.llm_clients.model_catalog import get_model_options
+from tradingagents.ticker_utils import (
+    TICKER_INPUT_EXAMPLES,
+    normalize_ticker_symbol as normalize_symbol_input,
+)
 
 console = Console()
-
-TICKER_INPUT_EXAMPLES = "Examples: SPY, CNC.TO, 7203.T, 0700.HK"
 
 ANALYST_ORDER = [
     ("Market Analyst", AnalystType.MARKET),
@@ -40,7 +42,7 @@ def get_ticker() -> str:
 
 def normalize_ticker_symbol(ticker: str) -> str:
     """Normalize ticker input while preserving exchange suffixes."""
-    return ticker.strip().upper()
+    return normalize_symbol_input(ticker)
 
 
 def get_analysis_date() -> str:
@@ -188,10 +190,11 @@ def select_deep_thinking_agent(provider) -> str:
     return choice
 
 def select_llm_provider() -> tuple[str, str]:
-    """Select the OpenAI api url using interactive selection."""
-    # Define OpenAI api options with their corresponding endpoints
+    """Select the LLM provider and API base URL using interactive selection."""
+    # Define provider options with their corresponding endpoints
     BASE_URLS = [
         ("OpenAI", "https://api.openai.com/v1"),
+        ("DeepSeek", "https://api.deepseek.com/v1"),
         ("Google", "https://generativelanguage.googleapis.com/v1"),
         ("Anthropic", "https://api.anthropic.com/"),
         ("xAI", "https://api.x.ai/v1"),

@@ -23,6 +23,18 @@ from .alpha_vantage import (
     get_global_news as get_alpha_vantage_global_news,
 )
 from .alpha_vantage_common import AlphaVantageRateLimitError
+from yfinance.exceptions import YFRateLimitError
+from .akshare_a_stock import (
+    get_stock_data_akshare,
+    get_news_akshare,
+    get_global_news_akshare,
+    get_fundamentals_akshare,
+    get_balance_sheet_akshare,
+    get_cashflow_akshare,
+    get_income_statement_akshare,
+    get_insider_transactions_akshare,
+)
+from tradingagents.ticker_utils import is_china_mainland_ticker
 
 # Configuration and routing logic
 from .config import get_config
@@ -61,6 +73,7 @@ TOOLS_CATEGORIES = {
 }
 
 VENDOR_LIST = [
+    "akshare",
     "yfinance",
     "alpha_vantage",
 ]
@@ -69,6 +82,7 @@ VENDOR_LIST = [
 VENDOR_METHODS = {
     # core_stock_apis
     "get_stock_data": {
+        "akshare": get_stock_data_akshare,
         "alpha_vantage": get_alpha_vantage_stock,
         "yfinance": get_YFin_data_online,
     },
@@ -79,31 +93,38 @@ VENDOR_METHODS = {
     },
     # fundamental_data
     "get_fundamentals": {
+        "akshare": get_fundamentals_akshare,
         "alpha_vantage": get_alpha_vantage_fundamentals,
         "yfinance": get_yfinance_fundamentals,
     },
     "get_balance_sheet": {
+        "akshare": get_balance_sheet_akshare,
         "alpha_vantage": get_alpha_vantage_balance_sheet,
         "yfinance": get_yfinance_balance_sheet,
     },
     "get_cashflow": {
+        "akshare": get_cashflow_akshare,
         "alpha_vantage": get_alpha_vantage_cashflow,
         "yfinance": get_yfinance_cashflow,
     },
     "get_income_statement": {
+        "akshare": get_income_statement_akshare,
         "alpha_vantage": get_alpha_vantage_income_statement,
         "yfinance": get_yfinance_income_statement,
     },
     # news_data
     "get_news": {
+        "akshare": get_news_akshare,
         "alpha_vantage": get_alpha_vantage_news,
         "yfinance": get_news_yfinance,
     },
     "get_global_news": {
+        "akshare": get_global_news_akshare,
         "yfinance": get_global_news_yfinance,
         "alpha_vantage": get_alpha_vantage_global_news,
     },
     "get_insider_transactions": {
+        "akshare": get_insider_transactions_akshare,
         "alpha_vantage": get_alpha_vantage_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
     },
@@ -136,9 +157,28 @@ def route_to_vendor(method: str, *args, **kwargs):
     category = get_category_for_method(method)
     vendor_config = get_vendor(category, method)
     primary_vendors = [v.strip() for v in vendor_config.split(',')]
+    config = get_config()
+    market_region = config.get("market_region", "global")
 
     if method not in VENDOR_METHODS:
         raise ValueError(f"Method '{method}' not supported")
+
+    if (
+        market_region == "china_mainland"
+        and "akshare" in VENDOR_METHODS[method]
+        and "akshare" not in primary_vendors
+    ):
+        primary_vendors = ["akshare"] + primary_vendors
+
+    if (
+        market_region != "china_mainland"
+        and args
+        and isinstance(args[0], str)
+        and is_china_mainland_ticker(args[0])
+        and "akshare" in VENDOR_METHODS[method]
+        and "akshare" not in primary_vendors
+    ):
+        primary_vendors = ["akshare"] + primary_vendors
 
     # Build fallback chain: primary vendors first, then remaining available vendors
     all_available_vendors = list(VENDOR_METHODS[method].keys())
@@ -146,6 +186,8 @@ def route_to_vendor(method: str, *args, **kwargs):
     for vendor in all_available_vendors:
         if vendor not in fallback_vendors:
             fallback_vendors.append(vendor)
+
+    errors = []
 
     for vendor in fallback_vendors:
         if vendor not in VENDOR_METHODS[method]:
@@ -156,7 +198,39 @@ def route_to_vendor(method: str, *args, **kwargs):
 
         try:
             return impl_func(*args, **kwargs)
-        except AlphaVantageRateLimitError:
-            continue  # Only rate limits trigger fallback
+        except (AlphaVantageRateLimitError, YFRateLimitError) as exc:
+            errors.append(f"{vendor}: {exc}")
+            continue
+        except ValueError as exc:
+            if vendor == "akshare" and "Unsupported mainland China" in str(exc):
+                errors.append(f"{vendor}: {exc}")
+                continue
+            if vendor == "alpha_vantage" and "ALPHA_VANTAGE_API_KEY" in str(exc):
+                errors.append(f"{vendor}: {exc}")
+                continue
+            raise
+        except Exception as exc:
+            if vendor == "akshare":
+                errors.append(f"{vendor}: {exc}")
+                continue
+            raise
+
+    if errors:
+        china_hint = ""
+        if market_region == "china_mainland":
+            china_hint = (
+                " 当前是 A 股/中国市场模式，程序已优先尝试 AkShare 等中国数据源。"
+            )
+        raise RuntimeError(
+            (
+                f"No available vendor for '{method}'. "
+                "Yahoo Finance may be rate limiting requests right now. "
+                "Wait a bit and retry, or configure Alpha Vantage as a fallback with "
+                "`ALPHA_VANTAGE_API_KEY` and set the relevant `data_vendors` entry to "
+                "`yfinance,alpha_vantage` or `alpha_vantage,yfinance`."
+                f"{china_hint} "
+                f"Attempts: {' | '.join(errors)}"
+            )
+        )
 
     raise RuntimeError(f"No available vendor for '{method}'")

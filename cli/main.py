@@ -1,5 +1,6 @@
 from typing import Optional
 import datetime
+import os
 import typer
 from pathlib import Path
 from functools import wraps
@@ -29,6 +30,7 @@ from cli.models import AnalystType
 from cli.utils import *
 from cli.announcements import fetch_announcements, display_announcements
 from cli.stats_handler import StatsCallbackHandler
+from tradingagents.ticker_utils import infer_market_region, normalize_ticker_symbol
 
 console = Console()
 
@@ -502,8 +504,8 @@ def get_user_selections():
     console.print(
         create_question_box(
             "Step 1: Ticker Symbol",
-            "Enter the exact ticker symbol to analyze, including exchange suffix when needed (examples: SPY, CNC.TO, 7203.T, 0700.HK)",
-            "SPY",
+            "Enter the ticker symbol to analyze. Mainland China 6-digit codes are supported and will auto-convert to Yahoo suffixes (examples: 600519, 000001, 159915, SPY, 0700.HK)",
+            "600519",
         )
     )
     selected_ticker = get_ticker()
@@ -613,7 +615,7 @@ def get_user_selections():
 
 def get_ticker():
     """Get ticker symbol from user input."""
-    return typer.prompt("", default="SPY")
+    return normalize_ticker_symbol(typer.prompt("", default="600519"))
 
 
 def get_analysis_date():
@@ -633,6 +635,35 @@ def get_analysis_date():
             console.print(
                 "[red]Error: Invalid date format. Please use YYYY-MM-DD[/red]"
             )
+
+
+def validate_provider_environment(selected_provider: str):
+    """Fail fast with a friendly message when provider credentials are missing."""
+    required_env = {
+        "openai": "OPENAI_API_KEY",
+        "deepseek": "DEEPSEEK_API_KEY",
+        "google": "GOOGLE_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "xai": "XAI_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+    }
+
+    provider_lower = selected_provider.lower()
+    env_var = required_env.get(provider_lower)
+
+    if not env_var or os.getenv(env_var):
+        return
+
+    console.print(
+        Panel(
+            f"[bold red]Missing required environment variable:[/bold red] `{env_var}`\n\n"
+            "Set it in your shell or add it to a local `.env` file before running the analysis.\n"
+            "You can start from `.env.example` in the project root.",
+            title="Provider Configuration Required",
+            border_style="red",
+        )
+    )
+    raise typer.Exit(code=1)
 
 
 def save_report_to_disk(final_state, ticker: str, save_path: Path):
@@ -928,6 +959,7 @@ def format_tool_args(args, max_length=80) -> str:
 def run_analysis():
     # First get all user selections
     selections = get_user_selections()
+    validate_provider_environment(selections["llm_provider"])
 
     # Create config with selected research depth
     config = DEFAULT_CONFIG.copy()
@@ -942,6 +974,7 @@ def run_analysis():
     config["openai_reasoning_effort"] = selections.get("openai_reasoning_effort")
     config["anthropic_effort"] = selections.get("anthropic_effort")
     config["output_language"] = selections.get("output_language", "English")
+    config["market_region"] = infer_market_region(selections["ticker"])
 
     # Create stats callback handler for tracking LLM/tool calls
     stats_handler = StatsCallbackHandler()

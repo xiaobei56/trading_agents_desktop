@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
     # Output language for analyst reports and final decision
     # Internal agent debate stays in English for reasoning quality
     "output_language": "English",
+    "market_region": "global",
     # Debate and discussion settings
     "max_debate_rounds": 1,
     "max_risk_discuss_rounds": 1,
@@ -26,10 +27,10 @@ DEFAULT_CONFIG = {
     # Data vendor configuration
     # Category-level configuration (default for all tools in category)
     "data_vendors": {
-        "core_stock_apis": "yfinance",       # Options: alpha_vantage, yfinance
-        "technical_indicators": "yfinance",  # Options: alpha_vantage, yfinance
-        "fundamental_data": "yfinance",      # Options: alpha_vantage, yfinance
-        "news_data": "yfinance",             # Options: alpha_vantage, yfinance
+        "core_stock_apis": "yfinance,alpha_vantage",       # Priority order, first available wins
+        "technical_indicators": "yfinance,alpha_vantage",  # Priority order, first available wins
+        "fundamental_data": "yfinance,alpha_vantage",      # Priority order, first available wins
+        "news_data": "yfinance,alpha_vantage",             # Priority order, first available wins
     },
     # Tool-level configuration (takes precedence over category-level)
     "tool_vendors": {

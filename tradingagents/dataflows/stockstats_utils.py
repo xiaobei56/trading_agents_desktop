@@ -1,5 +1,8 @@
 import time
 import logging
+from pathlib import Path
+import contextlib
+import io
 
 import pandas as pd
 import yfinance as yf
@@ -8,6 +11,7 @@ from stockstats import wrap
 from typing import Annotated
 import os
 from .config import get_config
+from tradingagents.ticker_utils import is_china_mainland_ticker, to_mainland_stock_code
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,29 @@ def _clean_dataframe(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def _get_cached_ohlcv_file(symbol: str) -> Path | None:
+    config = get_config()
+    cache_dir = Path(config["data_cache_dir"])
+    if not cache_dir.exists():
+        return None
+
+    candidates = sorted(cache_dir.glob(f"{symbol}-YFin-data-*.csv"))
+    if not candidates:
+        return None
+
+    return candidates[-1]
+
+
+def load_cached_ohlcv(symbol: str) -> pd.DataFrame | None:
+    """Load cached OHLCV data without triggering a fresh network request."""
+    cache_file = _get_cached_ohlcv_file(symbol)
+    if cache_file is None:
+        return None
+
+    data = pd.read_csv(cache_file, on_bad_lines="skip")
+    return _clean_dataframe(data)
+
+
 def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     """Fetch OHLCV data with caching, filtered to prevent look-ahead bias.
 
@@ -69,15 +96,38 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     if os.path.exists(data_file):
         data = pd.read_csv(data_file, on_bad_lines="skip")
     else:
-        data = yf_retry(lambda: yf.download(
-            symbol,
-            start=start_str,
-            end=end_str,
-            multi_level_index=False,
-            progress=False,
-            auto_adjust=True,
-        ))
-        data = data.reset_index()
+        if is_china_mainland_ticker(symbol):
+            import akshare as ak
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                normalized = symbol.upper()
+                code, suffix = normalized.split(".")
+                prefix = {"SS": "sh", "SZ": "sz", "BJ": "bj"}[suffix]
+                data = ak.stock_zh_a_hist_tx(
+                    symbol=f"{prefix}{code}",
+                    start_date=start_date.strftime("%Y%m%d"),
+                    end_date=today_date.strftime("%Y%m%d"),
+                    adjust="qfq",
+                )
+            data = data.rename(
+                columns={
+                    "date": "Date",
+                    "open": "Open",
+                    "high": "High",
+                    "low": "Low",
+                    "close": "Close",
+                    "amount": "Volume",
+                }
+            )
+        else:
+            data = yf_retry(lambda: yf.download(
+                symbol,
+                start=start_str,
+                end=end_str,
+                multi_level_index=False,
+                progress=False,
+                auto_adjust=True,
+            ))
+            data = data.reset_index()
         data.to_csv(data_file, index=False)
 
     data = _clean_dataframe(data)

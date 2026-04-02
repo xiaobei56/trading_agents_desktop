@@ -2,8 +2,17 @@ from typing import Annotated
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
 import os
-from .stockstats_utils import StockstatsUtils, _clean_dataframe, yf_retry, load_ohlcv, filter_financials_by_date
+import pandas as pd
+from .stockstats_utils import (
+    StockstatsUtils,
+    _clean_dataframe,
+    yf_retry,
+    load_cached_ohlcv,
+    load_ohlcv,
+    filter_financials_by_date,
+)
 
 def get_YFin_data_online(
     symbol: Annotated[str, "ticker symbol of the company"],
@@ -18,7 +27,21 @@ def get_YFin_data_online(
     ticker = yf.Ticker(symbol.upper())
 
     # Fetch historical data for the specified date range
-    data = yf_retry(lambda: ticker.history(start=start_date, end=end_date))
+    used_cache_fallback = False
+    try:
+        data = yf_retry(lambda: ticker.history(start=start_date, end=end_date))
+    except YFRateLimitError:
+        cached_data = load_cached_ohlcv(symbol.upper())
+        if cached_data is None or cached_data.empty:
+            raise
+
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        data = cached_data[
+            (cached_data["Date"] >= start_dt) & (cached_data["Date"] <= end_dt)
+        ].copy()
+        data = data.set_index("Date")
+        used_cache_fallback = True
 
     # Check if data is empty
     if data.empty:
@@ -43,6 +66,8 @@ def get_YFin_data_online(
     header = f"# Stock data for {symbol.upper()} from {start_date} to {end_date}\n"
     header += f"# Total records: {len(data)}\n"
     header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    if used_cache_fallback:
+        header += "# Source: local cache fallback (Yahoo Finance rate limited)\n\n"
 
     return header + csv_string
 

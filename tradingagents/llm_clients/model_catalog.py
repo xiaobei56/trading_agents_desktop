@@ -23,6 +23,16 @@ MODEL_OPTIONS: ProviderModeOptions = {
             ("GPT-5.4 Pro - Most capable, expensive ($30/$180 per 1M tokens)", "gpt-5.4-pro"),
         ],
     },
+    "deepseek": {
+        "quick": [
+            ("DeepSeek Chat - General-purpose fast model", "deepseek-chat"),
+            ("DeepSeek Reasoner - Deliberate reasoning model", "deepseek-reasoner"),
+        ],
+        "deep": [
+            ("DeepSeek Reasoner - Deliberate reasoning model", "deepseek-reasoner"),
+            ("DeepSeek Chat - General-purpose fast model", "deepseek-chat"),
+        ],
+    },
     "anthropic": {
         "quick": [
             ("Claude Sonnet 4.6 - Best speed and intelligence balance", "claude-sonnet-4-6"),
