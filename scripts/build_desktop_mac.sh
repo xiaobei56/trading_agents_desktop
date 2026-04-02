@@ -4,25 +4,32 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="${ROOT_DIR}/dist/macos"
 BUILD_DIR="${ROOT_DIR}/build/pyinstaller-macos"
+PYTHON_BIN="python3"
 
 cd "${ROOT_DIR}"
 
-if [[ ! -d ".venv" ]]; then
-  echo "Missing .venv. Create a virtualenv first."
+if [[ -x "${ROOT_DIR}/.venv/bin/python" ]]; then
+  # Prefer the project venv when it exists.
+  source ".venv/bin/activate"
+  PYTHON_BIN="python"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+else
+  echo "Python is required but was not found in PATH."
   exit 1
 fi
 
-source ".venv/bin/activate"
-
-if ! python -m pip --version >/dev/null 2>&1; then
-  python -m ensurepip --upgrade
+if ! "${PYTHON_BIN}" -m pip --version >/dev/null 2>&1; then
+  "${PYTHON_BIN}" -m ensurepip --upgrade
 fi
 
-python -m pip install -U pyinstaller
+"${PYTHON_BIN}" -m pip install -U pyinstaller
 
 rm -rf "${DIST_DIR}" "${BUILD_DIR}"
 
-python -m PyInstaller \
+"${PYTHON_BIN}" -m PyInstaller \
   --noconfirm \
   --clean \
   --windowed \

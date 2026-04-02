@@ -1,5 +1,18 @@
 # Trading Agents Desktop
 
+<p align="center">
+  <img src="assets/branding/repo-cover.svg" alt="Trading Agents Desktop Cover" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/xiaobei56/trading_agents_desktop/actions/workflows/desktop-build.yml">
+    <img src="https://github.com/xiaobei56/trading_agents_desktop/actions/workflows/desktop-build.yml/badge.svg" alt="Desktop Build">
+  </a>
+  <img src="https://img.shields.io/badge/A%E8%82%A1-%E4%BC%98%E5%85%88%E9%80%82%E9%85%8D-C56C39" alt="A股优先适配">
+  <img src="https://img.shields.io/badge/DeepSeek-%E6%8E%A8%E8%8D%90-1F5E52" alt="DeepSeek Recommended">
+  <img src="https://img.shields.io/badge/Desktop-PySide6-4F3C2E" alt="Desktop PySide6">
+</p>
+
 一个面向中文投资场景重构的 `TradingAgents` 桌面版 fork。
 
 这个版本重点解决了原项目在中文/A 股环境下的几个核心问题：
@@ -10,6 +23,26 @@
 - 在中国链路下优先使用 `AkShare`、腾讯证券、新浪财经、东方财富、财新、百度财经等数据源
 
 仓库基于上游 [TauricResearch/TradingAgents](https://github.com/TauricResearch/TradingAgents) 二次开发，保留多智能体分析框架，同时把实际可用性重心放在桌面体验和 A 股分析上。
+
+## 首页截图
+
+### 1. 配置与输入体验
+
+<p align="center">
+  <img src="assets/screenshots/desktop-config-overview.png" alt="Desktop Config Overview" width="100%">
+</p>
+
+### 2. 实时执行进度
+
+<p align="center">
+  <img src="assets/screenshots/desktop-live-progress.png" alt="Desktop Live Progress" width="100%">
+</p>
+
+### 3. 最终报告结果
+
+<p align="center">
+  <img src="assets/screenshots/desktop-final-report.png" alt="Desktop Final Report" width="100%">
+</p>
 
 ## 主要特性
 

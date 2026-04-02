@@ -5,21 +5,31 @@ $RootDir = Split-Path -Parent $PSScriptRoot
 $DistDir = Join-Path $RootDir "dist/windows"
 $BuildDir = Join-Path $RootDir "build/pyinstaller-windows"
 $VenvPython = Join-Path $RootDir ".venv\\Scripts\\python.exe"
+$PythonExe = $null
 
 Set-Location $RootDir
 
-if (-not (Test-Path $VenvPython)) {
-    Write-Error "Missing .venv. Create a virtualenv first."
+if (Test-Path $VenvPython) {
+    $PythonExe = $VenvPython
+}
+elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    $PythonExe = "python"
+}
+elseif (Get-Command py -ErrorAction SilentlyContinue) {
+    $PythonExe = "py"
+}
+else {
+    Write-Error "Python is required but was not found in PATH."
 }
 
 try {
-    & $VenvPython -m pip --version | Out-Null
+    & $PythonExe -m pip --version | Out-Null
 }
 catch {
-    & $VenvPython -m ensurepip --upgrade
+    & $PythonExe -m ensurepip --upgrade
 }
 
-& $VenvPython -m pip install -U pyinstaller
+& $PythonExe -m pip install -U pyinstaller
 
 if (Test-Path $DistDir) {
     Remove-Item $DistDir -Recurse -Force
@@ -28,7 +38,7 @@ if (Test-Path $BuildDir) {
     Remove-Item $BuildDir -Recurse -Force
 }
 
-& $VenvPython -m PyInstaller `
+& $PythonExe -m PyInstaller `
     --noconfirm `
     --clean `
     --windowed `

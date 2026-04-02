@@ -1,0 +1,90 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="110" y1="80" x2="1480" y2="840" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8F1E6"/>
+      <stop offset="0.45" stop-color="#F3E4D1"/>
+      <stop offset="1" stop-color="#E9D0B4"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="995" y1="170" x2="1420" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF9"/>
+      <stop offset="1" stop-color="#F7EFE5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" rx="36" fill="url(#bg)"/>
+
+  <circle cx="1340" cy="124" r="146" fill="#1F5E52" opacity="0.12"/>
+  <circle cx="1460" cy="764" r="196" fill="#C56C39" opacity="0.16"/>
+  <circle cx="124" cy="756" r="172" fill="#1F5E52" opacity="0.08"/>
+
+  <rect x="92" y="98" width="642" height="704" rx="28" fill="#FFFDF8" stroke="#D9C4AC" stroke-width="2"/>
+  <rect x="818" y="98" width="690" height="704" rx="28" fill="url(#panel)" stroke="#D9C4AC" stroke-width="2"/>
+
+  <text x="144" y="192" fill="#23170F" font-size="70" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    Trading Agents Desktop
+  </text>
+  <text x="144" y="252" fill="#6A4C38" font-size="30" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    中文桌面版 · A股优先 · 中国网络友好
+  </text>
+
+  <text x="144" y="344" fill="#1F5E52" font-size="32" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    为什么这个版本更适合中文用户
+  </text>
+
+  <text x="144" y="416" fill="#2B211B" font-size="28" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    • 原生桌面端，直接配置模型、股票和研究深度
+  </text>
+  <text x="144" y="472" fill="#2B211B" font-size="28" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    • 支持 6 位 A股代码、中文股名、板块词查询
+  </text>
+  <text x="144" y="528" fill="#2B211B" font-size="28" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    • 优先走 AkShare、腾讯证券、东方财富、财新等中国链路
+  </text>
+  <text x="144" y="584" fill="#2B211B" font-size="28" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    • DeepSeek / OpenAI / Claude / Gemini / Ollama 多模型支持
+  </text>
+  <text x="144" y="640" fill="#2B211B" font-size="28" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    • 实时查看日志、Agent 状态、当前报告和最终报告
+  </text>
+
+  <rect x="144" y="700" width="262" height="62" rx="18" fill="#1F5E52"/>
+  <text x="177" y="741" fill="white" font-size="30" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    面向发布的桌面版
+  </text>
+
+  <rect x="882" y="150" width="562" height="102" rx="18" fill="#FFFFFF" stroke="#D6BFA6" stroke-width="2"/>
+  <text x="920" y="196" fill="#3A291E" font-size="28" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    示例输入
+  </text>
+  <text x="920" y="232" fill="#6F5747" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    600519 / 中际旭创 / 黄金板块
+  </text>
+
+  <rect x="882" y="286" width="562" height="178" rx="22" fill="#FFFFFF" stroke="#D6BFA6" stroke-width="2"/>
+  <text x="920" y="336" fill="#3A291E" font-size="28" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    实时分析能力
+  </text>
+  <text x="920" y="388" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    - Agent 状态实时刷新
+  </text>
+  <text x="920" y="426" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    - 活动日志与工具调用可见
+  </text>
+  <text x="920" y="464" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    - 报告边生成边显示
+  </text>
+
+  <rect x="882" y="500" width="562" height="236" rx="22" fill="#FFF9F1" stroke="#D6BFA6" stroke-width="2"/>
+  <text x="920" y="550" fill="#C56C39" font-size="28" font-weight="700" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    适合首页展示的定位
+  </text>
+  <text x="920" y="604" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    中文投资研究助手，不再只是研究代码仓库，
+  </text>
+  <text x="920" y="640" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    而是一套可以直接运行、直接打包、直接分发的
+  </text>
+  <text x="920" y="676" fill="#2B211B" font-size="24" font-weight="500" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif">
+    A股桌面分析应用基础仓库。
+  </text>
+</svg>
