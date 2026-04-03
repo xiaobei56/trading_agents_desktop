@@ -99,8 +99,8 @@
   </tr>
   <tr>
     <td align="center">账号：AI一人行</td>
-    <td align="center">抖音号：AI_OnTheWay</td>
-    <td align="center">小红书：AI_OnTheWay</td>
+    <td align="center">抖音号：AI一人行</td>
+    <td align="center">小红书：AI一人行</td>
   </tr>
 </table>
 
