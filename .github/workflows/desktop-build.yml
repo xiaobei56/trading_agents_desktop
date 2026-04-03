@@ -28,7 +28,6 @@ jobs:
             package_path: dist/macos/TradingAgentsDesktop.app
             build_cmd: ./scripts/build_desktop_mac.sh
             archive_cmd: ditto -c -k --sequesterRsrc --keepParent "dist/macos/TradingAgentsDesktop.app" "dist/TradingAgentsDesktop-macos-arm64.zip"
-            shell: bash
           - os: windows-latest
             runner_label: Windows
             target_name: windows-x64
@@ -37,7 +36,6 @@ jobs:
             package_path: dist/windows/TradingAgentsDesktop
             build_cmd: .\scripts\build_desktop_windows.ps1
             archive_cmd: Compress-Archive -Path "dist/windows/TradingAgentsDesktop" -DestinationPath "dist/TradingAgentsDesktop-windows-x64.zip" -Force
-            shell: pwsh
 
     steps:
       - name: Checkout
@@ -62,12 +60,24 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
 
-      - name: Build desktop app
-        shell: ${{ matrix.shell }}
+      - name: Build desktop app (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
         run: ${{ matrix.build_cmd }}
 
-      - name: Archive build output
-        shell: ${{ matrix.shell }}
+      - name: Build desktop app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ${{ matrix.build_cmd }}
+
+      - name: Archive build output (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: ${{ matrix.archive_cmd }}
+
+      - name: Archive build output (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: ${{ matrix.archive_cmd }}
 
       - name: Upload workflow artifact
