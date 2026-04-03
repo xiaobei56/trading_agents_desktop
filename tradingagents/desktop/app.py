@@ -150,6 +150,53 @@ QFrame#NoticeCard {
 }
 """
 
+DIALOG_STYLESHEET = """
+QDialog, QMessageBox {
+    background: #fffdf9;
+    color: #24180f;
+}
+QDialog QLabel, QMessageBox QLabel {
+    background: transparent;
+    color: #24180f;
+}
+QDialog QTextBrowser {
+    background: #ffffff;
+    color: #1f140d;
+    border: 1px solid #d8c5ad;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+QDialog QScrollArea {
+    background: transparent;
+    border: none;
+}
+QDialog QFrame#DialogSummaryCard {
+    background: #fff7ef;
+    border: 1px solid #dcc0a0;
+    border-radius: 14px;
+}
+QDialog QPushButton, QMessageBox QPushButton {
+    background: #1f5e52;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    min-width: 112px;
+    font-weight: 600;
+}
+QDialog QPushButton:hover, QMessageBox QPushButton:hover {
+    background: #18493f;
+}
+QDialog QPushButton[secondary="true"], QMessageBox QPushButton[secondary="true"] {
+    background: #efe3d4;
+    color: #4f3c2e;
+    border: 1px solid #d3bda3;
+}
+QDialog QPushButton[secondary="true"]:hover, QMessageBox QPushButton[secondary="true"]:hover {
+    background: #e8d8c7;
+}
+"""
+
 
 COMPLIANCE_NOTICE_VERSION = "2026-04-03.zh-cn.v1"
 COMPLIANCE_NOTICE_SUMMARY = (
@@ -984,7 +1031,11 @@ class MainWindow(QMainWindow):
         self.run_state_value.setText("失败")
         self.report_path_value.setText("分析失败")
         self._append_log(error_text)
-        QMessageBox.critical(self, "分析失败", self._friendly_error_message(error_text))
+        self._show_message_box(
+            QMessageBox.Critical,
+            "分析失败",
+            self._friendly_error_message(error_text),
+        )
 
     def _open_results_folder(self) -> None:
         if self.latest_results_dir:
@@ -1010,28 +1061,70 @@ class MainWindow(QMainWindow):
             self.close()
 
     def _show_compliance_dialog(self, require_ack: bool) -> bool:
-        dialog = QMessageBox(self)
-        dialog.setIcon(QMessageBox.Warning)
+        dialog = QDialog(self)
         dialog.setWindowTitle("使用声明与风险提示")
-        dialog.setTextFormat(Qt.RichText)
-        dialog.setText(COMPLIANCE_NOTICE_SUMMARY)
-        dialog.setInformativeText(COMPLIANCE_NOTICE_HTML)
+        dialog.setModal(True)
+        dialog.resize(760, 620)
+        dialog.setStyleSheet(DIALOG_STYLESHEET)
+
+        root_layout = QVBoxLayout(dialog)
+        root_layout.setContentsMargins(18, 18, 18, 18)
+        root_layout.setSpacing(12)
+
+        title = QLabel("请先阅读使用声明与风险提示")
+        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #24180f;")
+        title.setWordWrap(True)
+        root_layout.addWidget(title)
+
+        summary_card = QFrame()
+        summary_card.setObjectName("DialogSummaryCard")
+        summary_layout = QVBoxLayout(summary_card)
+        summary_layout.setContentsMargins(16, 14, 16, 14)
+        summary_layout.setSpacing(8)
+
+        summary = QLabel(COMPLIANCE_NOTICE_SUMMARY)
+        summary.setWordWrap(True)
+        summary.setStyleSheet("font-size: 13px; font-weight: 600; color: #6c3f1e;")
+        summary_layout.addWidget(summary)
+        root_layout.addWidget(summary_card)
+
+        details = QTextBrowser()
+        details.setOpenExternalLinks(True)
+        details.setReadOnly(True)
+        details.document().setDefaultStyleSheet(
+            "body { color: #24180f; font-size: 14px; line-height: 1.65; }"
+            "p { margin: 0 0 8px 0; }"
+            "ul { margin: 8px 0 0 18px; }"
+            "li { margin: 0 0 8px 0; color: #2f2219; }"
+            "b { color: #24180f; }"
+        )
+        details.setHtml(COMPLIANCE_NOTICE_HTML)
+        root_layout.addWidget(details, 1)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
 
         if require_ack:
-            accept_button = dialog.addButton("我已了解并继续", QMessageBox.AcceptRole)
-            exit_button = dialog.addButton("退出应用", QMessageBox.RejectRole)
-            dialog.setDefaultButton(accept_button)
-            dialog.exec()
-            return dialog.clickedButton() == accept_button and dialog.clickedButton() != exit_button
+            exit_button = QPushButton("退出应用")
+            exit_button.setProperty("secondary", True)
+            exit_button.clicked.connect(dialog.reject)
+            continue_button = QPushButton("我已了解并继续")
+            continue_button.clicked.connect(dialog.accept)
+            button_row.addWidget(exit_button)
+            button_row.addWidget(continue_button)
+        else:
+            close_button = QPushButton("关闭")
+            close_button.clicked.connect(dialog.accept)
+            button_row.addWidget(close_button)
 
-        dialog.addButton("关闭", QMessageBox.AcceptRole)
-        dialog.exec()
-        return True
+        root_layout.addLayout(button_row)
+        return dialog.exec() == QDialog.Accepted
 
     def _show_community_dialog(self) -> None:
         dialog = QDialog(self)
         dialog.setWindowTitle("关注作者")
         dialog.resize(920, 760)
+        dialog.setStyleSheet(DIALOG_STYLESHEET)
 
         root_layout = QVBoxLayout(dialog)
         root_layout.setContentsMargins(18, 18, 18, 18)
@@ -1105,10 +1198,26 @@ class MainWindow(QMainWindow):
 
         dialog.exec()
 
+    def _show_message_box(
+        self,
+        icon: QMessageBox.Icon,
+        title: str,
+        text: str,
+    ) -> None:
+        dialog = QMessageBox(self)
+        dialog.setIcon(icon)
+        dialog.setWindowTitle(title)
+        dialog.setText(text)
+        dialog.setTextFormat(Qt.PlainText)
+        dialog.setStyleSheet(DIALOG_STYLESHEET)
+        close_button = dialog.addButton("关闭", QMessageBox.AcceptRole)
+        close_button.setProperty("secondary", True)
+        dialog.exec()
+
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self.worker_thread and self.worker_thread.isRunning():
-            QMessageBox.warning(
-                self,
+            self._show_message_box(
+                QMessageBox.Warning,
                 "分析仍在运行",
                 "请等待当前分析结束后再关闭桌面应用。",
             )
