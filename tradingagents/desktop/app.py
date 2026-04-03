@@ -7,7 +7,7 @@ import traceback
 from dotenv import load_dotenv
 
 try:
-    from PySide6.QtCore import QDate, QObject, QSettings, Qt, QThread, QUrl, Signal
+    from PySide6.QtCore import QDate, QObject, QSettings, Qt, QThread, QTimer, QUrl, Signal
     from PySide6.QtGui import QColor, QDesktopServices, QFontDatabase
     from PySide6.QtWidgets import (
         QApplication,
@@ -141,6 +141,30 @@ QScrollArea {
     border: none;
     background: transparent;
 }
+QFrame#NoticeCard {
+    background: #fff4ea;
+    border: 1px solid #dbb894;
+    border-radius: 16px;
+}
+"""
+
+
+COMPLIANCE_NOTICE_VERSION = "2026-04-03.zh-cn.v1"
+COMPLIANCE_NOTICE_SUMMARY = (
+    "本项目是开源的技术研究/演示工具，仅提供技术支持与辅助分析能力，"
+    "不提供任何形式的投资建议、证券推荐、收益承诺或委托理财服务。"
+)
+COMPLIANCE_NOTICE_HTML = """
+<p><b>请在使用前了解以下说明：</b></p>
+<ul>
+  <li>本项目是开源技术项目，面向研究、学习、工程验证和辅助分析场景，不是持牌证券、投资顾问或资产管理服务。</li>
+  <li>分析内容可能综合第三方财经接口、公开网页、联网搜索结果、AI 搜索和大模型生成输出，存在延迟、缺失、误差、幻觉或过时风险。</li>
+  <li>程序输出仅供技术参考，不构成任何投资建议、证券买卖建议、收益承诺、招揽或保证。</li>
+  <li>使用者应自行核验关键数据，并独立承担交易、投资、税务、法律和运营相关风险与责任。</li>
+  <li>第三方数据源、搜索服务、模型服务和网络链路的可用性、准确性与合规性，由对应提供方负责，本项目不作保证。</li>
+  <li>桌面端会在本机保存你填写的 API Key 配置，请自行做好设备、账号与密钥安全管理。</li>
+  <li>项目按当前仓库许可协议和“按现状”方式提供；如需商业化、面向客户分发或用于投顾场景，请先咨询专业律师或合规顾问。</li>
+</ul>
 """
 
 
@@ -171,10 +195,11 @@ class AnalysisWorker(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, show_compliance_notice: bool = True) -> None:
         super().__init__()
         load_dotenv()
         self.settings = QSettings("TradingAgents", "Desktop")
+        self.show_compliance_notice = show_compliance_notice
         self._provider_keys: dict[str, str] = {}
         self._active_provider: str | None = None
         self.worker_thread: QThread | None = None
@@ -184,6 +209,8 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._load_saved_state()
         self._refresh_agent_table({})
+        if self.show_compliance_notice:
+            QTimer.singleShot(0, self._show_compliance_notice_if_needed)
 
     def _build_ui(self) -> None:
         self.setWindowTitle("TradingAgents 桌面版")
@@ -207,12 +234,34 @@ class MainWindow(QMainWindow):
         title = QLabel("TradingAgents 桌面版")
         title.setStyleSheet("font-size: 28px; font-weight: 700; color: #24180f;")
         subtitle = QLabel(
-            "在原生 Mac 窗口中配置并运行多智能体交易分析，实时查看各个 Agent 的进度、日志和最终报告。"
+            "在原生桌面窗口中配置并运行多智能体交易分析，实时查看各个 Agent 的进度、日志和最终报告。"
         )
         subtitle.setWordWrap(True)
         subtitle.setStyleSheet("font-size: 13px; color: #4e3d2f;")
+        notice_card = QFrame()
+        notice_card.setObjectName("NoticeCard")
+        notice_layout = QHBoxLayout(notice_card)
+        notice_layout.setContentsMargins(14, 12, 14, 12)
+        notice_layout.setSpacing(12)
+        notice_label = QLabel(
+            "合规提示：本项目为开源技术演示，内容可能综合 AI 搜索、第三方财经数据与模型生成结果，仅供研究和技术支持，不构成投资建议。"
+        )
+        notice_label.setWordWrap(True)
+        notice_label.setStyleSheet("color: #6c3f1e; font-size: 12px; font-weight: 600;")
+        self.notice_button = QPushButton("查看完整声明")
+        self.notice_button.setCursor(Qt.PointingHandCursor)
+        self.notice_button.setMaximumWidth(132)
+        self.notice_button.setStyleSheet(
+            "QPushButton { background: #f3dfca; color: #6c3f1e; border: 1px solid #d7b28c; "
+            "border-radius: 10px; padding: 8px 12px; font-weight: 700; }"
+            "QPushButton:hover { background: #ecd4bb; }"
+        )
+        self.notice_button.clicked.connect(self._show_compliance_notice)
+        notice_layout.addWidget(notice_label, 1)
+        notice_layout.addWidget(self.notice_button, 0, Qt.AlignTop)
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
+        header_layout.addWidget(notice_card)
         root_layout.addWidget(header)
 
         stats_row = QFrame()
@@ -892,6 +941,44 @@ class MainWindow(QMainWindow):
         if self.latest_results_dir:
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.latest_results_dir))
 
+    def _show_compliance_notice(self) -> None:
+        self._show_compliance_dialog(require_ack=False)
+
+    def _show_compliance_notice_if_needed(self) -> None:
+        acknowledged_version = str(
+            self.settings.value("compliance_notice_version", "") or ""
+        )
+        if acknowledged_version == COMPLIANCE_NOTICE_VERSION:
+            return
+        accepted = self._show_compliance_dialog(require_ack=True)
+        if accepted:
+            self.settings.setValue(
+                "compliance_notice_version",
+                COMPLIANCE_NOTICE_VERSION,
+            )
+            self.settings.sync()
+        else:
+            self.close()
+
+    def _show_compliance_dialog(self, require_ack: bool) -> bool:
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Warning)
+        dialog.setWindowTitle("使用声明与风险提示")
+        dialog.setTextFormat(Qt.RichText)
+        dialog.setText(COMPLIANCE_NOTICE_SUMMARY)
+        dialog.setInformativeText(COMPLIANCE_NOTICE_HTML)
+
+        if require_ack:
+            accept_button = dialog.addButton("我已了解并继续", QMessageBox.AcceptRole)
+            exit_button = dialog.addButton("退出应用", QMessageBox.RejectRole)
+            dialog.setDefaultButton(accept_button)
+            dialog.exec()
+            return dialog.clickedButton() == accept_button and dialog.clickedButton() != exit_button
+
+        dialog.addButton("关闭", QMessageBox.AcceptRole)
+        dialog.exec()
+        return True
+
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self.worker_thread and self.worker_thread.isRunning():
             QMessageBox.warning(
@@ -910,7 +997,7 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("TradingAgents 桌面版")
     app.setOrganizationName("TradingAgents")
-    window = MainWindow()
+    window = MainWindow(show_compliance_notice=True)
     window.show()
     return app.exec()
 

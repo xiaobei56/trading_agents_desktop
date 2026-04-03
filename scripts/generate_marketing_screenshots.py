@@ -180,7 +180,7 @@ def save_window(window: MainWindow, filename: str) -> Path:
 def main() -> None:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     app = QApplication([])
-    window = MainWindow()
+    window = MainWindow(show_compliance_notice=False)
     outputs = [
         render_config_shot(window),
         render_progress_shot(window),
