@@ -3,16 +3,18 @@ from __future__ import annotations
 import os
 import sys
 import traceback
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 try:
     from PySide6.QtCore import QDate, QObject, QSettings, Qt, QThread, QTimer, QUrl, Signal
-    from PySide6.QtGui import QColor, QDesktopServices, QFontDatabase
+    from PySide6.QtGui import QColor, QDesktopServices, QFontDatabase, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
         QDateEdit,
+        QDialog,
         QFormLayout,
         QFrame,
         QGridLayout,
@@ -166,6 +168,27 @@ COMPLIANCE_NOTICE_HTML = """
   <li>项目按当前仓库许可协议和“按现状”方式提供；如需商业化、面向客户分发或用于投顾场景，请先咨询专业律师或合规顾问。</li>
 </ul>
 """
+
+SOCIAL_ACCOUNTS = [
+    {
+        "platform": "视频号",
+        "name": "AI一人行",
+        "description": "微信扫码查看视频号主页",
+        "asset": ("community", "wechat-channel-ai-on-the-way.jpg"),
+    },
+    {
+        "platform": "抖音",
+        "name": "AI_OnTheWay",
+        "description": "保存后可在抖音扫码，或搜索抖音号关注",
+        "asset": ("community", "douyin-ai-on-the-way.png"),
+    },
+    {
+        "platform": "小红书",
+        "name": "AI_OnTheWay",
+        "description": "扫码在小红书查看 AI 一人行",
+        "asset": ("community", "xiaohongshu-ai-on-the-way.jpg"),
+    },
+]
 
 
 class AnalysisWorker(QObject):
@@ -324,6 +347,10 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(splitter, 1)
 
         self.setCentralWidget(central)
+
+    def _asset_path(self, *parts: str) -> Path:
+        base_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+        return base_dir.joinpath("assets", *parts)
 
     def _build_controls_panel(self) -> QWidget:
         panel = QWidget()
@@ -507,8 +534,30 @@ class MainWindow(QMainWindow):
         action_hint.setWordWrap(True)
         actions_layout.addWidget(action_hint)
 
+        community_group = QGroupBox("关注作者")
+        community_layout = QVBoxLayout(community_group)
+        community_layout.setSpacing(10)
+        community_summary = QLabel(
+            "项目作者账号与社区入口。可扫码关注视频号、抖音、小红书；该区域仅用于内容传播，与投资分析结果分开展示。"
+        )
+        community_summary.setProperty("muted", "true")
+        community_summary.setWordWrap(True)
+        community_layout.addWidget(community_summary)
+
+        for account in SOCIAL_ACCOUNTS:
+            line = QLabel(f"{account['platform']}：{account['name']}")
+            line.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            line.setStyleSheet("font-weight: 600; color: #3d2d22;")
+            community_layout.addWidget(line)
+
+        self.community_button = QPushButton("查看作者二维码")
+        self.community_button.setMinimumHeight(42)
+        self.community_button.clicked.connect(self._show_community_dialog)
+        community_layout.addWidget(self.community_button)
+
         layout.addWidget(run_group)
         layout.addWidget(actions_group)
+        layout.addWidget(community_group)
         layout.addWidget(analysts_group)
         layout.addStretch(1)
         return panel
@@ -978,6 +1027,83 @@ class MainWindow(QMainWindow):
         dialog.addButton("关闭", QMessageBox.AcceptRole)
         dialog.exec()
         return True
+
+    def _show_community_dialog(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("关注作者")
+        dialog.resize(920, 760)
+
+        root_layout = QVBoxLayout(dialog)
+        root_layout.setContentsMargins(18, 18, 18, 18)
+        root_layout.setSpacing(12)
+
+        intro = QLabel(
+            "以下二维码用于关注项目作者的内容账号，方便查看桌面版开发记录、AI 编程内容与产品更新。"
+        )
+        intro.setWordWrap(True)
+        intro.setStyleSheet("font-size: 13px; color: #4e3d2f;")
+        root_layout.addWidget(intro)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll_content = QWidget()
+        cards_layout = QVBoxLayout(scroll_content)
+        cards_layout.setContentsMargins(0, 0, 0, 0)
+        cards_layout.setSpacing(12)
+
+        for account in SOCIAL_ACCOUNTS:
+            card = QFrame()
+            card.setObjectName("StatsCard")
+            card_layout = QHBoxLayout(card)
+            card_layout.setContentsMargins(16, 16, 16, 16)
+            card_layout.setSpacing(16)
+
+            text_panel = QWidget()
+            text_layout = QVBoxLayout(text_panel)
+            text_layout.setContentsMargins(0, 0, 0, 0)
+            text_layout.setSpacing(6)
+
+            title = QLabel(account["platform"])
+            title.setStyleSheet("font-size: 18px; font-weight: 700; color: #24180f;")
+            name = QLabel(f"账号：{account['name']}")
+            name.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            name.setStyleSheet("font-size: 14px; font-weight: 600; color: #3d2d22;")
+            desc = QLabel(account["description"])
+            desc.setWordWrap(True)
+            desc.setStyleSheet("font-size: 12px; color: #6a5747;")
+            text_layout.addWidget(title)
+            text_layout.addWidget(name)
+            text_layout.addWidget(desc)
+            text_layout.addStretch(1)
+
+            image_label = QLabel()
+            image_label.setMinimumWidth(260)
+            image_label.setAlignment(Qt.AlignCenter)
+            asset_path = self._asset_path(*account["asset"])
+            if asset_path.exists():
+                pixmap = QPixmap(str(asset_path))
+                image_label.setPixmap(
+                    pixmap.scaledToWidth(240, Qt.SmoothTransformation)
+                )
+            else:
+                image_label.setText("二维码资源缺失")
+                image_label.setStyleSheet("color: #a15a20; font-weight: 600;")
+
+            card_layout.addWidget(text_panel, 1)
+            card_layout.addWidget(image_label, 0, Qt.AlignCenter)
+            cards_layout.addWidget(card)
+
+        cards_layout.addStretch(1)
+        scroll.setWidget(scroll_content)
+        root_layout.addWidget(scroll, 1)
+
+        close_button = QPushButton("关闭")
+        close_button.setMinimumHeight(42)
+        close_button.clicked.connect(dialog.accept)
+        root_layout.addWidget(close_button, 0, Qt.AlignRight)
+
+        dialog.exec()
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         if self.worker_thread and self.worker_thread.isRunning():

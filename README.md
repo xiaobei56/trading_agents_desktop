@@ -80,6 +80,30 @@
 - 不想频繁敲命令、希望直接点界面运行的人
 - 想把上游 TradingAgents 当作桌面应用来用，而不是只当研究代码的人
 
+## 关注作者
+
+以下为项目作者的内容账号入口，主要分享 AI 编程、桌面应用迭代、独立开发和一人公司实践。
+
+> 提示：该区域仅用于内容传播与社区连接，不代表任何投资观点、证券推荐或投资建议。
+
+<table>
+  <tr>
+    <td align="center"><b>视频号</b></td>
+    <td align="center"><b>抖音</b></td>
+    <td align="center"><b>小红书</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/community/wechat-channel-ai-on-the-way.jpg" alt="视频号 AI一人行" width="250"></td>
+    <td align="center"><img src="assets/community/douyin-ai-on-the-way.png" alt="抖音 AI一人行" width="250"></td>
+    <td align="center"><img src="assets/community/xiaohongshu-ai-on-the-way.jpg" alt="小红书 AI一人行" width="250"></td>
+  </tr>
+  <tr>
+    <td align="center">账号：AI一人行</td>
+    <td align="center">抖音号：AI_OnTheWay</td>
+    <td align="center">小红书：AI_OnTheWay</td>
+  </tr>
+</table>
+
 ## 合规声明与免责声明
 
 - 本项目是 Apache-2.0 开源技术项目，主要用于研究、学习、工程验证和辅助分析。
