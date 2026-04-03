@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import sys
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -425,8 +426,40 @@ def apply_environment(selection: DesktopSelection) -> None:
         )
 
 
+def desktop_storage_root() -> Path:
+    override = os.getenv("TRADINGAGENTS_DESKTOP_HOME", "").strip()
+    if override:
+        return Path(override).expanduser()
+
+    if os.name == "nt":
+        base_dir = Path(
+            os.getenv("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")
+        )
+        return base_dir / "TradingAgentsDesktop"
+
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "TradingAgentsDesktop"
+
+    xdg_home = os.getenv("XDG_DATA_HOME", "").strip()
+    if xdg_home:
+        return Path(xdg_home).expanduser() / "tradingagents-desktop"
+
+    return Path.home() / ".local" / "share" / "tradingagents-desktop"
+
+
 def build_config(selection: DesktopSelection) -> dict[str, Any]:
     config = DEFAULT_CONFIG.copy()
+    storage_root = desktop_storage_root()
+    results_root = storage_root / "results"
+    cache_root = storage_root / "data_cache"
+
+    storage_root.mkdir(parents=True, exist_ok=True)
+    results_root.mkdir(parents=True, exist_ok=True)
+    cache_root.mkdir(parents=True, exist_ok=True)
+
+    config["project_dir"] = str(storage_root)
+    config["results_dir"] = str(results_root)
+    config["data_cache_dir"] = str(cache_root)
     config["max_debate_rounds"] = selection.research_depth
     config["max_risk_discuss_rounds"] = selection.research_depth
     config["quick_think_llm"] = selection.shallow_thinker

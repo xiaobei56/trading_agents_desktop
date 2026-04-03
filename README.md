@@ -255,7 +255,11 @@ python -m cli.main
   - 活动日志
 
 - 结果目录
-  - 默认写入 `results/<ticker>/<date>/desktop_reports/`
+  - 桌面版默认写入用户可写目录，而不是 `.app` 安装包内部
+  - macOS：`~/Library/Application Support/TradingAgentsDesktop/results/<ticker>/<date>/desktop_reports/`
+  - Windows：`%LOCALAPPDATA%\\TradingAgentsDesktop\\results\\<ticker>\\<date>\\desktop_reports\\`
+  - Linux：`~/.local/share/tradingagents-desktop/results/<ticker>/<date>/desktop_reports/`
+  - 如需自定义，可设置环境变量 `TRADINGAGENTS_DESKTOP_HOME`
 
 ## 中国市场数据链路
 
