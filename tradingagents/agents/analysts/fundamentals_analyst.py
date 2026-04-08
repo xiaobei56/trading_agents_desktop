@@ -1,6 +1,5 @@
+from langchain_core.messages import ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-import time
-import json
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
     get_balance_sheet,
@@ -11,6 +10,116 @@ from tradingagents.agents.utils.agent_utils import (
     get_language_instruction,
 )
 from tradingagents.dataflows.config import get_config
+
+
+FAILURE_MARKERS = (
+    "无法从当前数据源获取信息",
+    "无法获取具体的财务数据",
+    "数据缺失",
+    "手动验证",
+    "官方渠道获取财务数据",
+    "no fundamentals data found",
+    "error retrieving fundamentals",
+    "unable to retrieve",
+    "failed to retrieve",
+)
+
+
+def _report_indicates_missing_data(report: str) -> bool:
+    lowered = (report or "").strip().lower()
+    return any(marker in lowered for marker in FAILURE_MARKERS)
+
+
+def _tool_output_has_substance(content: str) -> bool:
+    text = (content or "").strip()
+    if not text:
+        return False
+
+    lowered = text.lower()
+    if lowered.startswith("no ") or lowered.startswith("error retrieving"):
+        return False
+    if "无法从当前数据源获取信息" in text or "数据缺失" in text:
+        return False
+
+    return "|" in text or len(text) > 200
+
+
+def _extract_fundamental_tool_outputs(messages) -> dict[str, str]:
+    outputs: dict[str, str] = {}
+    name_map = {
+        "get_fundamentals": "fundamentals",
+        "get_balance_sheet": "balance_sheet",
+        "get_cashflow": "cashflow",
+        "get_income_statement": "income_statement",
+    }
+    header_map = {
+        "# a-share fundamentals": "fundamentals",
+        "# company fundamentals": "fundamentals",
+        "# balance sheet": "balance_sheet",
+        "# cash flow": "cashflow",
+        "# income statement": "income_statement",
+    }
+
+    for message in messages:
+        content = getattr(message, "content", "")
+        text = content if isinstance(content, str) else str(content)
+        if not _tool_output_has_substance(text):
+            continue
+
+        tool_name = getattr(message, "name", "") or ""
+        normalized_name = name_map.get(tool_name)
+        if isinstance(message, ToolMessage) and normalized_name:
+            outputs.setdefault(normalized_name, text)
+            continue
+
+        lowered = text.lower()
+        for header, section_name in header_map.items():
+            if header in lowered:
+                outputs.setdefault(section_name, text)
+                break
+
+    return outputs
+
+
+def _build_fallback_fundamentals_report(messages, ticker: str) -> str | None:
+    tool_outputs = _extract_fundamental_tool_outputs(messages)
+    if not tool_outputs:
+        return None
+
+    output_language = get_config().get("output_language", "English").strip().lower()
+    if output_language == "chinese":
+        intro = (
+            f"## 基本面数据汇总\n\n"
+            f"已从当前数据源获取 `{ticker}` 的原始基本面数据。"
+            "下列内容基于工具返回结果整理，可直接作为后续研究与决策参考。\n"
+        )
+        titles = {
+            "fundamentals": "综合指标",
+            "balance_sheet": "资产负债表",
+            "cashflow": "现金流量表",
+            "income_statement": "利润表",
+        }
+    else:
+        intro = (
+            f"## Fundamentals Data Summary\n\n"
+            f"Raw fundamentals data for `{ticker}` was retrieved successfully from the configured tools. "
+            "The sections below are compiled directly from tool outputs for downstream analysis.\n"
+        )
+        titles = {
+            "fundamentals": "Overview Metrics",
+            "balance_sheet": "Balance Sheet",
+            "cashflow": "Cash Flow",
+            "income_statement": "Income Statement",
+        }
+
+    ordered_sections = ["fundamentals", "balance_sheet", "cashflow", "income_statement"]
+    sections = [intro]
+    for section_name in ordered_sections:
+        content = tool_outputs.get(section_name)
+        if content:
+            sections.append(f"### {titles[section_name]}\n\n{content}")
+
+    return "\n\n".join(sections)
 
 
 def create_fundamentals_analyst(llm):
@@ -61,7 +170,15 @@ def create_fundamentals_analyst(llm):
         report = ""
 
         if len(result.tool_calls) == 0:
-            report = result.content
+            report = result.content if isinstance(result.content, str) else str(result.content)
+
+            if not report.strip() or _report_indicates_missing_data(report):
+                fallback_report = _build_fallback_fundamentals_report(
+                    state["messages"],
+                    state["company_of_interest"],
+                )
+                if fallback_report:
+                    report = fallback_report
 
         return {
             "messages": [result],
