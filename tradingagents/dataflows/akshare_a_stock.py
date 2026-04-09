@@ -341,7 +341,8 @@ def get_fundamentals_akshare(ticker: str, curr_date: str | None = None) -> str:
 
     abstract_df = _call_akshare(ak.stock_financial_abstract, symbol=code)
 
-    sections = [f"# A-share fundamentals for {ticker}", "## 关键指标（新浪财经）"]
+    latest_report_period = "未知"
+    sections = [f"# A-share fundamentals for {ticker}"]
     if not abstract_df.empty:
         report_columns = [col for col in abstract_df.columns if col.isdigit()]
         selected_reports = []
@@ -354,9 +355,29 @@ def get_fundamentals_akshare(ticker: str, curr_date: str | None = None) -> str:
         if not selected_reports:
             selected_reports = report_columns
         selected_reports = selected_reports[:4]
+        if selected_reports:
+            latest_report_period = selected_reports[0]
+        sections.extend(
+            [
+                "# Source: AkShare / 新浪财经 / 同花顺",
+                f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                f"# Latest report period: {latest_report_period}",
+                "",
+                "## 关键指标（新浪财经）",
+            ]
+        )
         preview_df = abstract_df[["选项", "指标", *selected_reports]].head(14).copy()
         sections.append(_format_table(preview_df, max_rows=14))
     else:
+        sections.extend(
+            [
+                "# Source: AkShare / 新浪财经 / 同花顺",
+                f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                "# Latest report period: 未知",
+                "",
+                "## 关键指标（新浪财经）",
+            ]
+        )
         sections.append("No A-share fundamentals data found.")
 
     try:
@@ -388,6 +409,7 @@ def get_balance_sheet_akshare(ticker: str, freq: str = "quarterly", curr_date: s
     df = _filter_cn_report_day(df, curr_date)
     if freq.lower() == "annual":
         df = _filter_cn_annual_rows(df)
+    latest_report_period = df["报告日"].iloc[0] if not df.empty and "报告日" in df.columns else "未知"
     preview = _pick_existing_columns(
         df,
         [
@@ -410,7 +432,13 @@ def get_balance_sheet_akshare(ticker: str, freq: str = "quarterly", curr_date: s
             "负债和所有者权益(或股东权益)总计",
         ],
     )
-    return f"# Balance Sheet for {ticker} ({freq})\n\n" + _format_table(preview, max_rows=8)
+    header = (
+        f"# Balance Sheet for {ticker} ({freq})\n"
+        f"# Source: AkShare / 新浪财经\n"
+        f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"# Latest report period: {latest_report_period}\n\n"
+    )
+    return header + _format_table(preview, max_rows=8)
 
 
 def get_cashflow_akshare(ticker: str, freq: str = "quarterly", curr_date: str | None = None) -> str:
@@ -422,6 +450,7 @@ def get_cashflow_akshare(ticker: str, freq: str = "quarterly", curr_date: str | 
     df = _filter_cn_report_day(df, curr_date)
     if freq.lower() == "annual":
         df = _filter_cn_annual_rows(df)
+    latest_report_period = df["报告日"].iloc[0] if not df.empty and "报告日" in df.columns else "未知"
     preview = _pick_existing_columns(
         df,
         [
@@ -443,7 +472,13 @@ def get_cashflow_akshare(ticker: str, freq: str = "quarterly", curr_date: str | 
             "期末现金及现金等价物余额",
         ],
     )
-    return f"# Cash Flow for {ticker} ({freq})\n\n" + _format_table(preview, max_rows=8)
+    header = (
+        f"# Cash Flow for {ticker} ({freq})\n"
+        f"# Source: AkShare / 新浪财经\n"
+        f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"# Latest report period: {latest_report_period}\n\n"
+    )
+    return header + _format_table(preview, max_rows=8)
 
 
 def get_income_statement_akshare(ticker: str, freq: str = "quarterly", curr_date: str | None = None) -> str:
@@ -455,6 +490,7 @@ def get_income_statement_akshare(ticker: str, freq: str = "quarterly", curr_date
     df = _filter_cn_report_day(df, curr_date)
     if freq.lower() == "annual":
         df = _filter_cn_annual_rows(df)
+    latest_report_period = df["报告日"].iloc[0] if not df.empty and "报告日" in df.columns else "未知"
     preview = _pick_existing_columns(
         df,
         [
@@ -475,7 +511,13 @@ def get_income_statement_akshare(ticker: str, freq: str = "quarterly", curr_date
             "稀释每股收益",
         ],
     )
-    return f"# Income Statement for {ticker} ({freq})\n\n" + _format_table(preview, max_rows=8)
+    header = (
+        f"# Income Statement for {ticker} ({freq})\n"
+        f"# Source: AkShare / 新浪财经\n"
+        f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"# Latest report period: {latest_report_period}\n\n"
+    )
+    return header + _format_table(preview, max_rows=8)
 
 
 def get_insider_transactions_akshare(ticker: str) -> str:
