@@ -122,6 +122,65 @@ def _build_fallback_fundamentals_report(messages, ticker: str) -> str | None:
     return "\n\n".join(sections)
 
 
+def _fetch_direct_fundamental_tool_outputs(ticker: str, curr_date: str) -> dict[str, str]:
+    tool_invocations = [
+        ("fundamentals", get_fundamentals, {"ticker": ticker, "curr_date": curr_date}),
+        (
+            "balance_sheet",
+            get_balance_sheet,
+            {"ticker": ticker, "freq": "quarterly", "curr_date": curr_date},
+        ),
+        (
+            "cashflow",
+            get_cashflow,
+            {"ticker": ticker, "freq": "quarterly", "curr_date": curr_date},
+        ),
+        (
+            "income_statement",
+            get_income_statement,
+            {"ticker": ticker, "freq": "quarterly", "curr_date": curr_date},
+        ),
+    ]
+
+    outputs: dict[str, str] = {}
+    for section_name, tool, payload in tool_invocations:
+        try:
+            content = tool.invoke(payload)
+        except Exception:
+            continue
+
+        text = content if isinstance(content, str) else str(content)
+        if _tool_output_has_substance(text):
+            outputs[section_name] = text
+
+    return outputs
+
+
+def _build_fallback_report_from_outputs(
+    tool_outputs: dict[str, str],
+    ticker: str,
+) -> str | None:
+    if not tool_outputs:
+        return None
+
+    synthetic_messages = []
+    tool_name_map = {
+        "fundamentals": "get_fundamentals",
+        "balance_sheet": "get_balance_sheet",
+        "cashflow": "get_cashflow",
+        "income_statement": "get_income_statement",
+    }
+    for idx, (section_name, content) in enumerate(tool_outputs.items(), start=1):
+        synthetic_messages.append(
+            ToolMessage(
+                content=content,
+                tool_call_id=str(idx),
+                name=tool_name_map[section_name],
+            )
+        )
+    return _build_fallback_fundamentals_report(synthetic_messages, ticker)
+
+
 def create_fundamentals_analyst(llm):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
@@ -179,6 +238,17 @@ def create_fundamentals_analyst(llm):
                 )
                 if fallback_report:
                     report = fallback_report
+                else:
+                    direct_outputs = _fetch_direct_fundamental_tool_outputs(
+                        state["company_of_interest"],
+                        current_date,
+                    )
+                    direct_report = _build_fallback_report_from_outputs(
+                        direct_outputs,
+                        state["company_of_interest"],
+                    )
+                    if direct_report:
+                        report = direct_report
 
         return {
             "messages": [result],
